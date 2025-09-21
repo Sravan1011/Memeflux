@@ -27,8 +27,25 @@ async function fetchNews() {
   }
 }
 
+interface NewsArticle {
+  title: string;
+  description: string;
+  url: string;
+  urlToImage?: string;
+  publishedAt: string;
+  source: {
+    name: string;
+  };
+}
+
+interface ArticleWithMeme extends NewsArticle {
+  memeUrl?: string;
+  memePrompt?: string;
+  error?: string;
+}
+
 // Helper function to generate meme from news article
-async function generateMemeFromArticle(article: any) {
+async function generateMemeFromArticle(article: NewsArticle): Promise<ArticleWithMeme> {
   try {
     // Create a meme prompt based on the article
     const prompt = `Funny meme about: ${article.title}. Make it humorous and shareable.`;
@@ -42,14 +59,14 @@ async function generateMemeFromArticle(article: any) {
 
     return {
       ...article,
-      memeUrl: imageUrl,
+      memeUrl: imageUrl || undefined, // Ensure memeUrl is either string or undefined, not null
       memePrompt: prompt
     };
   } catch (error) {
     console.error('Error generating meme for article:', article.title, error);
     return {
       ...article,
-      memeUrl: null,
+      memeUrl: undefined, // Use undefined instead of null
       error: 'Failed to generate meme'
     };
   }
@@ -66,7 +83,7 @@ export async function GET() {
 
     // Process articles in parallel to generate memes
     const articlesWithMemes = await Promise.all(
-      newsData.articles.map(article => generateMemeFromArticle(article))
+      newsData.articles.map((article: NewsArticle) => generateMemeFromArticle(article))
     );
 
     return NextResponse.json({

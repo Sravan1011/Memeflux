@@ -1,5 +1,33 @@
 import { NextResponse } from 'next/server';
 
+interface SubredditResult {
+  subreddit: string;
+  posts: Array<{
+    id: string;
+    title: string;
+    url: string;
+    permalink: string;
+    score: number;
+    num_comments: number;
+    author: string;
+    subreddit: string;
+    created_utc: number;
+    is_video: boolean;
+    media: any;
+    post_hint?: string;
+    preview?: {
+      images: Array<{
+        source?: {
+          url: string;
+          width: number;
+          height: number;
+        };
+      }>;
+    };
+  }>;
+  error?: string;
+}
+
 const SUBREDDITS = ['memes', 'dankmemes', 'wholesomememes', 'me_irl'];
 
 export async function GET() {
@@ -33,7 +61,7 @@ export async function GET() {
         }))
     );
 
-    const results = await Promise.all(fetchPromises);
+    const results: SubredditResult[] = await Promise.all(fetchPromises);
     const allPosts = results.flatMap(result => result.posts);
     
     // Filter out non-image posts and sort by score
@@ -43,15 +71,16 @@ export async function GET() {
         const hasImage = post.url.match(/\.(jpeg|jpg|gif|png|webp)$/) !== null || 
                         (post.preview && post.preview.images && post.preview.images[0]?.source);
         // Filter out gallery posts and non-image posts
-        return hasImage && !post.is_gallery && !post.is_video;
+        return hasImage && !post.is_video;
       })
       .sort((a, b) => b.score - a.score);
 
     return NextResponse.json({ posts: imagePosts });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching Reddit posts:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch memes from Reddit';
     return NextResponse.json(
-      { error: 'Failed to fetch memes from Reddit' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

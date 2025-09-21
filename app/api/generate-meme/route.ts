@@ -3,9 +3,23 @@ import { generateImageWithFlux } from '@/lib/fluxGenerator';
 
 export const runtime = 'edge';
 
-export async function POST(req: Request) {
+interface GenerateMemeRequest {
+  prompt: string;
+  model?: string;
+  aspectRatio?: string;
+  negativePrompt?: string;
+}
+
+interface GenerateMemeResponse {
+  imageUrl: string;
+  error?: string;
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { prompt, model = 'flux', aspectRatio = '1:1', negativePrompt } = await req.json();
+    // Parse the request body
+    const body = await req.json() as Partial<GenerateMemeRequest>;
+    const { prompt, model = 'flux', aspectRatio = '1:1', negativePrompt } = body;
 
     if (!prompt?.trim()) {
       return NextResponse.json(
@@ -20,12 +34,12 @@ export async function POST(req: Request) {
     // Generate image using Pollinations AI with FLUX model
     const imageUrl = await generateImageWithFlux(
       enhancedPrompt,
-      aspectRatio as any,
+      '1:1', // Force to 1:1 aspect ratio for memes
       negativePrompt
     );
 
     return NextResponse.json({ imageUrl });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error generating meme:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate meme';
     return NextResponse.json(
